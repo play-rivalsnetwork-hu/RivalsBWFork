@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Wed, 29 Mar 2023 18:54:17 +0200
+Subject: [PATCH] Disable random ticking of blocks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+index 505503a3f59d4b747649275c6f6faa504b7c7b64..8906c4332f36c566a7ceeb80847e20add859ec76 100644
+--- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -1062,7 +1062,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+         }
+ 
+         public void randomTick(ServerLevel world, BlockPos pos, RandomSource random) {
+-            this.getBlock().randomTick(this.asState(), world, pos, random);
++//            this.getBlock().randomTick(this.asState(), world, pos, random); // RivalsBW - Disable random ticking
+         }
+ 
+         public void entityInside(Level world, BlockPos pos, Entity entity) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index 962c950ca9c7e047a3aec215d4faa73676049d36..76cf89ac2cd77f85e32c5c889419a4979e08f282 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -767,10 +767,12 @@ public class CraftBlock implements Block {
+ 
+     @Override
+     public void randomTick() {
+-        net.minecraft.world.level.block.state.BlockState blockData = this.getNMS();
+-        net.minecraft.server.level.ServerLevel level = this.world.getMinecraftWorld();
+-
+-        blockData.getBlock().randomTick(blockData, level, this.position, level.random);
++// RivalsBW start - Disable random ticking
++//        net.minecraft.world.level.block.state.BlockState blockData = this.getNMS();
++//        net.minecraft.server.level.ServerLevel level = this.world.getMinecraftWorld();
++//
++//        blockData.getBlock().randomTick(blockData, level, this.position, level.random);
++// RivalsBW end - Disable random ticking
+     }
+     // Paper end
+ }

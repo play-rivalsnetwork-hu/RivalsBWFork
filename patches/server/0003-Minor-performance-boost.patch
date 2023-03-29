@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Wed, 29 Mar 2023 17:59:48 +0200
+Subject: [PATCH] Minor performance boost
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index e9d3e34520b706627205e0d5b17b25e09f198e7e..ce0a0dc2dedc40bc5377d1c7cb7200353aef1896 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -3391,7 +3391,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+             this.checkAutoSpinAttack(axisalignedbb, this.getBoundingBox());
+         }
+ 
+-        this.pushEntities();
++//        this.pushEntities(); RivalsBW - Disable collisions
+         this.level.getProfiler().pop();
+         // Paper start
+         if (((ServerLevel) this.level).hasEntityMoveEvent && !(this instanceof net.minecraft.world.entity.player.Player)) {
