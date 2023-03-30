@@ -1949,10 +1949,10 @@ index f597d65d56964297eeeed6c7e77703764178fee0..3bdad76344fa2e417eb544fad48968ed
      public ChunkHolder.FullChunkStatus status;
  
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 963d781167d71de81adf682cb85cf6840a683ac7..433e0aae5ad8733b8006f9fce19f98dc59b5926d 100644
+index 1e36774a345366872ab014372bad2f3f8737d716..69d7e72724c400a2fbef3ae3b8df8b1e2f96a373 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -273,7 +273,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -274,7 +274,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      private final PackRepository packRepository;
      private final ServerScoreboard scoreboard;
      @Nullable
@@ -1961,7 +1961,7 @@ index 963d781167d71de81adf682cb85cf6840a683ac7..433e0aae5ad8733b8006f9fce19f98dc
      private final CustomBossEvents customBossEvents;
      private final ServerFunctionManager functionManager;
      private final FrameTimer frameTimer;
-@@ -463,18 +463,33 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -464,18 +464,33 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              if (dimensionKey == LevelStem.NETHER) {
                  if (this.isNetherEnabled()) {
                      dimension = -1;
