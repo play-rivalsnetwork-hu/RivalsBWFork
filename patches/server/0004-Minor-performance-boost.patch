@@ -5,7 +5,7 @@ Subject: [PATCH] Minor performance boost
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index e9d3e34520b706627205e0d5b17b25e09f198e7e..ce0a0dc2dedc40bc5377d1c7cb7200353aef1896 100644
+index dcfb71b5a53df789e366fea2080921d677549a2e..8572669d69fbd2c756560bc069809e97dc383ec7 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -3391,7 +3391,7 @@ public abstract class LivingEntity extends Entity implements Attackable {

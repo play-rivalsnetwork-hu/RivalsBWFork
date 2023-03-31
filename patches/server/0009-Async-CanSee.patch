@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Github Actions <no-reply@github.com>
+Date: Thu, 30 Mar 2023 19:20:17 +0200
+Subject: [PATCH] Async CanSee
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 69d7e72724c400a2fbef3ae3b8df8b1e2f96a373..4c9784629c89966c0b51d809bbfea6ef8d8c7c97 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -44,6 +44,8 @@ import java.util.Optional;
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.Executor;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
+ import java.util.concurrent.RejectedExecutionException;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.BooleanSupplier;
+@@ -313,6 +315,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public volatile Thread shutdownThread; // Paper
+     public volatile boolean abnormalExit = false; // Paper
+     public boolean isIteratingOverLevels = false; // Paper
++    public hu.rivalsnetwork.AsyncUtils asyncUtils = new hu.rivalsnetwork.AsyncUtils(); // RivalsBW
+ 
+     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
+         AtomicReference<S> atomicreference = new AtomicReference();
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index a7e133f3495e9132a5fdae2c24f225e7b026295a..9eb7c5f5362c902a2d815ae98388f5471ec9c2c8 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -339,6 +339,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+                 DedicatedServer.LOGGER.info("JMX monitoring enabled");
+             }
+ 
++            asyncUtils.start();
+             return true;
+         }
+     }
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index fbe209a66c77c47935ad026dd3e45e682af91fd8..77c307494af4c6e22e95790ad166d42260b31e05 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1615,21 +1615,23 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
+                 double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
+                 double d2 = d0 * d0;
+-                boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
++                boolean flag[] = {d1 <= d2 && this.entity.broadcastToPlayer(player)};
+ 
+-                // CraftBukkit start - respect vanish API
+-                if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
+-                    flag = false;
+-                }
+-                // CraftBukkit end
+-                if (flag) {
+-                    if (this.seenBy.add(player.connection)) {
+-                        this.serverEntity.addPairing(player);
++                // CraftBukkit start - respect vanish API // RivalsBW start - Async CanSee
++                net.minecraft.server.MinecraftServer.getServer().asyncUtils.add(() -> {
++                    if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
++                        flag[0] = false;
+                     }
+-                } else if (this.seenBy.remove(player.connection)) {
+-                    this.serverEntity.removePairing(player);
+-                }
+-
++                }, () -> {
++                    if (flag[0]) {
++                        if (this.seenBy.add(player.connection)) {
++                            this.serverEntity.addPairing(player);
++                        }
++                    } else if (this.seenBy.remove(player.connection)) {
++                        this.serverEntity.removePairing(player);
++                    }
++                });
++                // CraftBukkit end // RivalsBW start - Async CanSee
+             }
+         }
+ 

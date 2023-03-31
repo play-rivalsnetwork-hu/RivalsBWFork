@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Github Actions <no-reply@github.com>
+Date: Fri, 31 Mar 2023 16:16:10 +0200
+Subject: [PATCH] AsyncUtils
+
+
+diff --git a/src/main/java/hu/rivalsnetwork/AsyncUtils.java b/src/main/java/hu/rivalsnetwork/AsyncUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..27d300d2440f778d2f08c5a3bed8a749302a9ba9
+--- /dev/null
++++ b/src/main/java/hu/rivalsnetwork/AsyncUtils.java
+@@ -0,0 +1,48 @@
++package hu.rivalsnetwork;
++
++import java.util.HashMap;
++import java.lang.Thread;
++import java.lang.Runnable;
++
++import java.util.concurrent.BlockingQueue;
++import java.util.concurrent.ArrayBlockingQueue;
++
++// Thanks to Gurwinder Singh https://stackoverflow.com/questions/41312981/create-a-job-queue-or-task-controller-and-dynamically-add-task-to-it-in-java
++public class AsyncUtils {
++    private BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(4096);
++    private HashMap<Runnable, Runnable> runnables = new HashMap<>();
++    private Thread thread;
++    private boolean killed = false;
++
++    public AsyncUtils(String name) {
++        thread = new Thread(name);
++    }
++    
++    public void kill() {
++        killed = true;
++    }
++
++    public void start() {
++        thread.start();
++
++        while (!killed) {
++            Runnable runnable1 = null;
++            try {
++                runnable1 = queue.take();
++            } catch(InterruptedException exception) {
++                exception.printStackTrace();
++            } finally {
++                if (runnable1 != null) {
++                    synchronized(net.minecraft.server.MinecraftServer.class) {
++                        runnables.remove(runnable1).run();
++                    }
++                }
++            }
++        }
++    }
++
++    public void add(Runnable runnable, Runnable runnable2) {
++        runnables.put(runnable, runnable2);
++        queue.add(runnable);
++    }
++}
+\ No newline at end of file
