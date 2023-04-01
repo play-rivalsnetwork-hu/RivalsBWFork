@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Sat, 1 Apr 2023 10:33:51 +0200
+Subject: [PATCH] Optimize canSee
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 470bd9332572c3e1c9339ce691e2d86fc3ce8e08..9d66445ceb980caae2de9d8eb6772e4aca570caf 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -318,6 +318,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public boolean isIteratingOverLevels = false; // Paper
+ 
+     public gg.pufferfish.pufferfish.util.AsyncExecutor mobSpawnExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("MobSpawning"); // Pufferfish - optimize mob spawning
++    public gg.pufferfish.pufferfish.util.AsyncExecutor canSeeExecutor = new gg.pufferfish.pufferfish.util.AsyncExecutor("CanSee"); // RivalsBW - optimize canSee
+ 
+     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
+         AtomicReference<S> atomicreference = new AtomicReference();
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c775778df 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -376,6 +376,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             }
+ 
+             if (gg.pufferfish.pufferfish.PufferfishConfig.enableAsyncMobSpawning) mobSpawnExecutor.start(); // Pufferfish
++            canSeeExecutor.start(); // RivalsBW
+             org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur
+             org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..87e0b9bf4252355df427e869d3044be633fef0a0 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1615,21 +1615,27 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
+                 double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
+                 double d2 = d0 * d0;
+-                boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
++                boolean flag[] = {d1 <= d2 && this.entity.broadcastToPlayer(player)};
+ 
++                // RivalsBW start - Optimize canSee
+                 // CraftBukkit start - respect vanish API
+-                if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
+-                    flag = false;
+-                }
+-                // CraftBukkit end
+-                if (flag) {
+-                    if (this.seenBy.add(player.connection)) {
+-                        this.serverEntity.addPairing(player);
++                net.minecraft.server.MinecraftServer.getServer().canSeeExecutor.submit(() -> {
++                    if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
++                        flag[0] = false;
+                     }
+-                } else if (this.seenBy.remove(player.connection)) {
+-                    this.serverEntity.removePairing(player);
+-                }
++                    mainThreadExecutor.scheduleOnMain(() -> {
++                        if (flag[0]) {
++                            if (this.seenBy.add(player.connection)) {
++                                this.serverEntity.addPairing(player);
++                            }
++                        } else if (this.seenBy.remove(player.connection)) {
++                            this.serverEntity.removePairing(player);
++                        }
++                    });
++                });
+ 
++                // CraftBukkit end
++                // RivalsBW end - Optimize canSee
+             }
+         }
+ 

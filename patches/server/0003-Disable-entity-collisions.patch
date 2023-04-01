@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Sat, 1 Apr 2023 09:57:26 +0200
+Subject: [PATCH] Disable entity collisions
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index 8d7c33e16f9eaec2120c5aad75172ff656d1bd17..c5e8f31dd1b8bc3a0a67e613c667a27878c1ca80 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -3478,7 +3478,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+             this.checkAutoSpinAttack(axisalignedbb, this.getBoundingBox());
+         }
+ 
+-        this.pushEntities();
++        //this.pushEntities(); // RivalsBW
+         //this.level.getProfiler().pop(); // Purpur
+         // Paper start
+         // Purpur start

@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Sat, 1 Apr 2023 10:06:15 +0200
+Subject: [PATCH] Disable unneeded entity actions
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 3c10c719f6172161a2dcc6592a0a1492e9b3d7c1..4949dfb79a1ca305a79515256e185e5ae5c0bfe6 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -845,9 +845,9 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+ 
+         this.wasInPowderSnow = this.isInPowderSnow;
+         this.isInPowderSnow = false;
+-        this.updateInWaterStateAndDoFluidPushing();
+-        this.updateFluidOnEyes();
+-        this.updateSwimming();
++        //this.updateInWaterStateAndDoFluidPushing(); // RivalsBW
++        //this.updateFluidOnEyes(); // RivalsBW
++        //this.updateSwimming(); // RivalsBW
+         if (this.level.isClientSide) {
+             this.clearFire();
+         } else if (this.remainingFireTicks > 0) {
+@@ -1196,7 +1196,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                     }
+                 }
+ 
+-                this.tryCheckInsideBlocks();
++                //this.tryCheckInsideBlocks(); // RivalsBW
+                 float f2 = this.getBlockSpeedFactor();
+ 
+                 this.setDeltaMovement(this.getDeltaMovement().multiply((double) f2, 1.0D, (double) f2));
