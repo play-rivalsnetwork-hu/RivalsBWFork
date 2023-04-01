@@ -5,10 +5,10 @@ Subject: [PATCH] Build Changes
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 22470f0ab8354a9f31a0f195f3fe80f2f5ee2f0e..6579724ef09e00fbb229b151261384f80d9eb26d 100644
+index 22470f0ab8354a9f31a0f195f3fe80f2f5ee2f0e..9022824e345931763527b2cee854b2d180c3ea56 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
-@@ -7,8 +7,12 @@ plugins {
+@@ -7,8 +7,13 @@ plugins {
  }
  
  dependencies {
@@ -16,6 +16,7 @@ index 22470f0ab8354a9f31a0f195f3fe80f2f5ee2f0e..6579724ef09e00fbb229b151261384f8
 -    implementation("io.papermc.paper:paper-mojangapi:1.19.4-R0.1-SNAPSHOT") // Purpur
 +    // ASWM start
 +    implementation(project(":slimeworldmanager-api"))
++    implementation(project(":core"))
 +    implementation("io.papermc.paper:paper-mojangapi:1.19.4-R0.1-SNAPSHOT") { // Purpur
 +        exclude("io.papermc.paper", "paper-api")
 +    }
@@ -23,7 +24,7 @@ index 22470f0ab8354a9f31a0f195f3fe80f2f5ee2f0e..6579724ef09e00fbb229b151261384f8
      // Paper start
      implementation("org.jline:jline-terminal-jansi:3.21.0")
      implementation("net.minecrell:terminalconsoleappender:1.3.0")
-@@ -81,7 +85,7 @@ tasks.jar {
+@@ -81,7 +86,7 @@ tasks.jar {
          attributes(
              "Main-Class" to "org.bukkit.craftbukkit.Main",
              "Implementation-Title" to "CraftBukkit",
@@ -32,7 +33,7 @@ index 22470f0ab8354a9f31a0f195f3fe80f2f5ee2f0e..6579724ef09e00fbb229b151261384f8
              "Implementation-Vendor" to date, // Paper
              "Specification-Title" to "Bukkit",
              "Specification-Version" to project.version,
-@@ -153,7 +157,7 @@ fun TaskContainer.registerRunTask(
+@@ -153,7 +158,7 @@ fun TaskContainer.registerRunTask(
      name: String,
      block: JavaExec.() -> Unit
  ): TaskProvider<JavaExec> = register<JavaExec>(name) {
