@@ -29,10 +29,10 @@ index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c
              org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 57fdef8b16e1ed9a4693356144b4685bbcea285c..b9affa610b4b71d7f5e7cf577c038baf4745ece3 100644
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..7e26682728ca33d53f39e4f7403ce908350edb0c 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1615,21 +1615,34 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1615,21 +1615,32 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
                  double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
                  double d2 = d0 * d0;
@@ -52,7 +52,7 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..b9affa610b4b71d7f5e7cf577c038baf
 +                    return player.getBukkitEntity().canSee(this.entity.getBukkitEntity());
 +                });
 +
-+                future.thenAcceptAsync(flag2 -> {
++                future.thenAccept(flag2 -> {
 +                    boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
 +                    if (!flag2) {
 +                        flag = false;
@@ -62,15 +62,13 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..b9affa610b4b71d7f5e7cf577c038baf
 -                }
  
 +                    boolean finalFlag = flag;
-+                    mainThreadExecutor.scheduleOnMain(() -> {
-+                        if (finalFlag) {
-+                            if (this.seenBy.add(player.connection)) {
-+                                this.serverEntity.addPairing(player);
-+                            }
-+                        } else if (this.seenBy.remove(player.connection)) {
-+                            this.serverEntity.removePairing(player);
++                    if (finalFlag) {
++                        if (this.seenBy.add(player.connection)) {
++                            this.serverEntity.addPairing(player);
 +                        }
-+                    });
++                    } else if (this.seenBy.remove(player.connection)) {
++                        this.serverEntity.removePairing(player);
++                    }
 +                });
 +
 +                // CraftBukkit end
