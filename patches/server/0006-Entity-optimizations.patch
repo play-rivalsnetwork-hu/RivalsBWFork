@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Sat, 1 Apr 2023 19:21:34 +0200
+Subject: [PATCH] Entity optimizations
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index cce1030d8db57ab72f1676a6ffe1b404fcd3f0eb..a82c389e9fad9812b75ec7403ac10784168f1f48 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -743,7 +743,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                 //gameprofilerfiller.pop(); // Purpur
+             }
+ 
+-            org.spigotmc.ActivationRange.activateEntities(this); // Spigot
++            //org.spigotmc.ActivationRange.activateEntities(this); // Spigot // RivalsBW
+             //timings.entityTick.startTiming(); // Spigot // Purpur
+             this.entityTickList.forEach((entity) -> {
+                 entity.activatedPriorityReset = false; // Pufferfish - DAB
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index d055cfc257cc7282170ba67c848af3e6c5f2ec1f..875b7ac3f5956f0271ee8122458c33881b8e8593 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -624,15 +624,15 @@ public abstract class Player extends LivingEntity {
+                 axisalignedbb = this.getBoundingBox().inflate(1.0D, 0.5D, 1.0D);
+             }
+ 
+-            List<Entity> list = this.level.getEntities(this, axisalignedbb);
++            List<ItemEntity> list = this.level.getEntitiesOfClass(ItemEntity.class, axisalignedbb);
+             List<Entity> list1 = Lists.newArrayList();
+ 
+             for (int i = 0; i < list.size(); ++i) {
+                 Entity entity = (Entity) list.get(i);
+ 
+-                if (entity.getType() == EntityType.EXPERIENCE_ORB && entity.level.purpurConfig.playerExpPickupDelay >= 0) { // Purpur
+-                    list1.add(entity);
+-                } else if (!entity.isRemoved()) {
++                //if (entity.getType() == EntityType.EXPERIENCE_ORB && entity.level.purpurConfig.playerExpPickupDelay >= 0) { // Purpur
++                    //list1.add(entity);
++                /*} else */if (!entity.isRemoved()) {
+                     this.touch(entity);
+                 }
+             }

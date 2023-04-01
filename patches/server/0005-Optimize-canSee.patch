@@ -29,10 +29,10 @@ index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c
              org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 57fdef8b16e1ed9a4693356144b4685bbcea285c..87e0b9bf4252355df427e869d3044be633fef0a0 100644
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..1bd089ed8b177d30f976aa344f892f57cc3ceb54 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1615,21 +1615,27 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1615,21 +1615,18 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
                  double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
                  double d2 = d0 * d0;
@@ -48,24 +48,14 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..87e0b9bf4252355df427e869d3044be6
 -                if (flag) {
 -                    if (this.seenBy.add(player.connection)) {
 -                        this.serverEntity.addPairing(player);
-+                net.minecraft.server.MinecraftServer.getServer().canSeeExecutor.submit(() -> {
-+                    if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
-+                        flag[0] = false;
-                     }
--                } else if (this.seenBy.remove(player.connection)) {
--                    this.serverEntity.removePairing(player);
--                }
-+                    mainThreadExecutor.scheduleOnMain(() -> {
-+                        if (flag[0]) {
-+                            if (this.seenBy.add(player.connection)) {
-+                                this.serverEntity.addPairing(player);
-+                            }
-+                        } else if (this.seenBy.remove(player.connection)) {
-+                            this.serverEntity.removePairing(player);
-+                        }
-+                    });
-+                });
- 
+-                    }
++                if (this.seenBy.add(player.connection)) {
++                    this.serverEntity.addPairing(player);
++
+                 } else if (this.seenBy.remove(player.connection)) {
+                     this.serverEntity.removePairing(player);
+                 }
+-
 +                // CraftBukkit end
 +                // RivalsBW end - Optimize canSee
              }
