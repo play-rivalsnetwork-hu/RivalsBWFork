@@ -29,10 +29,10 @@ index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c
              org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 57fdef8b16e1ed9a4693356144b4685bbcea285c..96e1f82cb4703edf311e8a6b28725794872acc1f 100644
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..b9affa610b4b71d7f5e7cf577c038baf4745ece3 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1615,21 +1615,26 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1615,21 +1615,34 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
                  double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
                  double d2 = d0 * d0;
@@ -48,7 +48,11 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..96e1f82cb4703edf311e8a6b28725794
 -                if (flag) {
 -                    if (this.seenBy.add(player.connection)) {
 -                        this.serverEntity.addPairing(player);
-+                player.getBukkitEntity().canSeeAsync(this.entity.getBukkitEntity()).thenAccept(flag2 -> {
++                CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
++                    return player.getBukkitEntity().canSee(this.entity.getBukkitEntity());
++                });
++
++                future.thenAcceptAsync(flag2 -> {
 +                    boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
 +                    if (!flag2) {
 +                        flag = false;
@@ -57,21 +61,25 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..96e1f82cb4703edf311e8a6b28725794
 -                    this.serverEntity.removePairing(player);
 -                }
  
-+                    if (flag) {
-+                        if (this.seenBy.add(player.connection)) {
-+                            this.serverEntity.addPairing(player);
++                    boolean finalFlag = flag;
++                    mainThreadExecutor.scheduleOnMain(() -> {
++                        if (finalFlag) {
++                            if (this.seenBy.add(player.connection)) {
++                                this.serverEntity.addPairing(player);
++                            }
++                        } else if (this.seenBy.remove(player.connection)) {
++                            this.serverEntity.removePairing(player);
 +                        }
-+                    } else if (this.seenBy.remove(player.connection)) {
-+                        this.serverEntity.removePairing(player);
-+                    }
++                    });
 +                });
++
 +                // CraftBukkit end
 +                // RivalsBW end - Optimize canSee
              }
          }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index f81b320ef330d03b68cf8b4af04b7c991ce9636b..681fca82b06aa44a7b55aabb6546ee8ae03456f4 100644
+index f81b320ef330d03b68cf8b4af04b7c991ce9636b..dbbf8950bfa216beeece61c4c6eee8aba405e44a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -26,6 +26,7 @@ import java.util.Optional;
@@ -82,16 +90,3 @@ index f81b320ef330d03b68cf8b4af04b7c991ce9636b..681fca82b06aa44a7b55aabb6546ee8a
  import java.util.logging.Level;
  import java.util.logging.Logger;
  import javax.annotation.Nullable;
-@@ -1992,6 +1993,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
-         return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()); // SPIGOT-7312: Can always see self
-     }
- 
-+    public CompletableFuture<Boolean> canSeeAsync(org.bukkit.entity.Entity entity) {
-+        CompletableFuture<Boolean> future = new CompletableFuture<>();
-+        future.complete(this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()));
-+        return future;
-+    }
-+
-     public boolean canSee(UUID uuid) {
-         org.bukkit.entity.Entity entity = getServer().getPlayer(uuid);
-         if (entity == null) {
