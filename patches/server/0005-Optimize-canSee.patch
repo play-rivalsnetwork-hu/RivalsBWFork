@@ -29,16 +29,16 @@ index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c
              org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 57fdef8b16e1ed9a4693356144b4685bbcea285c..1bd089ed8b177d30f976aa344f892f57cc3ceb54 100644
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..96e1f82cb4703edf311e8a6b28725794872acc1f 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1615,21 +1615,18 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1615,21 +1615,26 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
                  double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
                  double d2 = d0 * d0;
 -                boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
-+                boolean flag[] = {d1 <= d2 && this.entity.broadcastToPlayer(player)};
  
++
 +                // RivalsBW start - Optimize canSee
                  // CraftBukkit start - respect vanish API
 -                if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
@@ -48,16 +48,49 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..1bd089ed8b177d30f976aa344f892f57
 -                if (flag) {
 -                    if (this.seenBy.add(player.connection)) {
 -                        this.serverEntity.addPairing(player);
--                    }
-+                if (this.seenBy.add(player.connection)) {
-+                    this.serverEntity.addPairing(player);
-+
-                 } else if (this.seenBy.remove(player.connection)) {
-                     this.serverEntity.removePairing(player);
-                 }
--
++                player.getBukkitEntity().canSeeAsync(this.entity.getBukkitEntity()).thenAccept(flag2 -> {
++                    boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
++                    if (!flag2) {
++                        flag = false;
+                     }
+-                } else if (this.seenBy.remove(player.connection)) {
+-                    this.serverEntity.removePairing(player);
+-                }
+ 
++                    if (flag) {
++                        if (this.seenBy.add(player.connection)) {
++                            this.serverEntity.addPairing(player);
++                        }
++                    } else if (this.seenBy.remove(player.connection)) {
++                        this.serverEntity.removePairing(player);
++                    }
++                });
 +                // CraftBukkit end
 +                // RivalsBW end - Optimize canSee
              }
          }
  
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index f81b320ef330d03b68cf8b4af04b7c991ce9636b..57c63b6c1fad89369199171ffbd8d91356fa2bcd 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -26,6 +26,7 @@ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
+ import java.util.WeakHashMap;
++import java.util.concurrent.CompletableFuture;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
+ import javax.annotation.Nullable;
+@@ -1992,6 +1993,11 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()); // SPIGOT-7312: Can always see self
+     }
+ 
++    public CompletableFuture<Boolean> canSeeAsync(org.bukkit.entity.Entity entity) {
++        CompletableFuture<Boolean> future = new CompletableFuture<>();
++        return future.completeAsync(() -> this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()));
++    }
++
+     public boolean canSee(UUID uuid) {
+         org.bukkit.entity.Entity entity = getServer().getPlayer(uuid);
+         if (entity == null) {
