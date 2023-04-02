@@ -29,7 +29,7 @@ index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c
              org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 57fdef8b16e1ed9a4693356144b4685bbcea285c..3a2f3342dd90b7eb89b64d8863515a48f28b9471 100644
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..174c80d3db0de4c6a0909629760c53f84caf2ea3 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -9,6 +9,7 @@ import com.google.common.collect.Lists;
@@ -51,15 +51,7 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..3a2f3342dd90b7eb89b64d8863515a48
  import org.slf4j.Logger;
  import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
  import org.bukkit.entity.Player;
-@@ -157,6 +162,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-     int viewDistance;
-     public final com.destroystokyo.paper.util.misc.PlayerAreaMap playerMobDistanceMap; // Paper
-     public final ReferenceOpenHashSet<ChunkHolder> needsChangeBroadcasting = new ReferenceOpenHashSet<>();
-+    private final Plugin plugin = new MinecraftInternalPlugin();
- 
-     // Paper - rewrite chunk system
-     // Paper start - optimise checkDespawn
-@@ -1615,21 +1621,35 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1615,21 +1620,29 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
                  double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
                  double d2 = d0 * d0;
@@ -74,15 +66,10 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..3a2f3342dd90b7eb89b64d8863515a48
 -                if (flag) {
 -                    if (this.seenBy.add(player.connection)) {
 -                        this.serverEntity.addPairing(player);
-+                CompletableFuture<Boolean> future = new CompletableFuture<>();
-+
-+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
-+                    future.complete(player.getBukkitEntity().canSee(this.entity.getBukkitEntity())
-+                ));
-+
-+                future.whenComplete((a, b) -> {
++                MinecraftServer.getServer().canSeeExecutor.submit(() -> {
 +                    boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
-+                    if (!a) {
++
++                    if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
 +                        flag = false;
                      }
 -                } else if (this.seenBy.remove(player.connection)) {
@@ -90,7 +77,7 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..3a2f3342dd90b7eb89b64d8863515a48
 -                }
  
 +                    boolean finalFlag = flag;
-+                    Bukkit.getScheduler().runTask(plugin, () -> {
++                    MinecraftServer.getServer().executeBlocking(() -> {
 +                        if (finalFlag) {
 +                            if (this.seenBy.add(player.connection)) {
 +                                this.serverEntity.addPairing(player);
@@ -100,7 +87,6 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..3a2f3342dd90b7eb89b64d8863515a48
 +                        }
 +                    });
 +                });
-+
 +                // CraftBukkit end
 +                // RivalsBW end - Optimize canSee
              }
