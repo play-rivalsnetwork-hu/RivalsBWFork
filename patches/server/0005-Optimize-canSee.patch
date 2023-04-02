@@ -29,7 +29,7 @@ index 582467e3419c23446b20d3076fbfce22115250a8..c89394c167a38019094e639e7d97cf7c
              org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 57fdef8b16e1ed9a4693356144b4685bbcea285c..174c80d3db0de4c6a0909629760c53f84caf2ea3 100644
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..789b47e673225ef95e1da87895c9e9573a9b7863 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -9,6 +9,7 @@ import com.google.common.collect.Lists;
@@ -51,49 +51,32 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..174c80d3db0de4c6a0909629760c53f8
  import org.slf4j.Logger;
  import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
  import org.bukkit.entity.Player;
-@@ -1615,21 +1620,29 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-                 double d0 = (double) Math.min(this.getEffectiveRange(), io.papermc.paper.chunk.PlayerChunkLoader.getSendViewDistance(player) * 16); // Paper - per player view distance
-                 double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
+@@ -1617,11 +1622,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  double d2 = d0 * d0;
--                boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
+                 boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
  
 +                // RivalsBW start - Optimize canSee
                  // CraftBukkit start - respect vanish API
--                if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
--                    flag = false;
--                }
+                 if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
+                     flag = false;
+                 }
 -                // CraftBukkit end
--                if (flag) {
--                    if (this.seenBy.add(player.connection)) {
--                        this.serverEntity.addPairing(player);
-+                MinecraftServer.getServer().canSeeExecutor.submit(() -> {
-+                    boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
 +
-+                    if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
-+                        flag = false;
-                     }
--                } else if (this.seenBy.remove(player.connection)) {
--                    this.serverEntity.removePairing(player);
--                }
- 
-+                    boolean finalFlag = flag;
-+                    MinecraftServer.getServer().executeBlocking(() -> {
-+                        if (finalFlag) {
-+                            if (this.seenBy.add(player.connection)) {
-+                                this.serverEntity.addPairing(player);
-+                            }
-+                        } else if (this.seenBy.remove(player.connection)) {
-+                            this.serverEntity.removePairing(player);
-+                        }
-+                    });
-+                });
+                 if (flag) {
+                     if (this.seenBy.add(player.connection)) {
+                         this.serverEntity.addPairing(player);
+@@ -1629,7 +1635,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 } else if (this.seenBy.remove(player.connection)) {
+                     this.serverEntity.removePairing(player);
+                 }
+-
 +                // CraftBukkit end
 +                // RivalsBW end - Optimize canSee
              }
          }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index f81b320ef330d03b68cf8b4af04b7c991ce9636b..dbbf8950bfa216beeece61c4c6eee8aba405e44a 100644
+index f81b320ef330d03b68cf8b4af04b7c991ce9636b..283d45409e9a9a32954fe9feb24f6782e566690a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -26,6 +26,7 @@ import java.util.Optional;
@@ -104,3 +87,84 @@ index f81b320ef330d03b68cf8b4af04b7c991ce9636b..dbbf8950bfa216beeece61c4c6eee8ab
  import java.util.logging.Level;
  import java.util.logging.Logger;
  import javax.annotation.Nullable;
+@@ -165,7 +166,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     private boolean hasPlayedBefore = false;
+     private final ConversationTracker conversationTracker = new ConversationTracker();
+     private final Set<String> channels = new HashSet<String>();
+-    private final Map<UUID, Set<WeakReference<Plugin>>> invertedVisibilityEntities = new HashMap<>();
++    private final Map<Integer, Set<WeakReference<Plugin>>> invertedVisibilityEntities = new HashMap<>(); // RivalsBW
+     private static final WeakHashMap<Plugin, WeakReference<Plugin>> pluginWeakReferences = new WeakHashMap<>();
+     private int hash = 0;
+     private double health = 20;
+@@ -1796,7 +1797,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     }
+ 
+     private boolean addInvertedVisibility(@Nullable Plugin plugin, org.bukkit.entity.Entity entity) {
+-        Set<WeakReference<Plugin>> invertedPlugins = this.invertedVisibilityEntities.get(entity.getUniqueId());
++        Set<WeakReference<Plugin>> invertedPlugins = this.invertedVisibilityEntities.get(entity.getEntityId()); // RivalsBW
+         if (invertedPlugins != null) {
+             // Some plugins are already inverting the entity. Just mark that this
+             // plugin wants the entity inverted too and end.
+@@ -1805,7 +1806,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         }
+         invertedPlugins = new HashSet<>();
+         invertedPlugins.add(CraftPlayer.getPluginWeakReference(plugin));
+-        this.invertedVisibilityEntities.put(entity.getUniqueId(), invertedPlugins);
++        this.invertedVisibilityEntities.put(entity.getEntityId(), invertedPlugins); // RivalsBW
+ 
+         return true;
+     }
+@@ -1841,7 +1842,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+             return;
+         }
+ 
+-        if (this.invertedVisibilityEntities.remove(entity.getUniqueId()) == null) {
++        if (this.invertedVisibilityEntities.remove(entity.getEntityId()) == null) { // RivalsBW
+             this.untrackAndHideEntity(entity);
+         }
+     }
+@@ -1883,7 +1884,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     }
+ 
+     private boolean removeInvertedVisiblity(@Nullable Plugin plugin, org.bukkit.entity.Entity entity) {
+-        Set<WeakReference<Plugin>> invertedPlugins = this.invertedVisibilityEntities.get(entity.getUniqueId());
++        Set<WeakReference<Plugin>> invertedPlugins = this.invertedVisibilityEntities.get(entity.getEntityId()); // RivalsBW
+         if (invertedPlugins == null) {
+             return false; // Entity isn't inverted
+         }
+@@ -1891,7 +1892,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         if (!invertedPlugins.isEmpty()) {
+             return false; // Some other plugins still want the entity inverted
+         }
+-        this.invertedVisibilityEntities.remove(entity.getUniqueId());
++        this.invertedVisibilityEntities.remove(entity.getEntityId()); // RivalsBW
+ 
+         return true;
+     }
+@@ -1949,7 +1950,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+             return;
+         }
+ 
+-        if (this.invertedVisibilityEntities.remove(entity.getUniqueId()) == null) {
++        if (this.invertedVisibilityEntities.remove(entity.getEntityId()) == null) { // RivalsBW
+             this.trackAndShowEntity(entity);
+         }
+     }
+@@ -1979,7 +1980,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+     // Paper end
+ 
+     public void onEntityRemove(Entity entity) {
+-        this.invertedVisibilityEntities.remove(entity.getUUID());
++        this.invertedVisibilityEntities.remove(entity.getBukkitEntity().getEntityId()); // RivalsBW
+     }
+ 
+     @Override
+@@ -1989,7 +1990,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+ 
+     @Override
+     public boolean canSee(org.bukkit.entity.Entity entity) {
+-        return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()); // SPIGOT-7312: Can always see self
++        return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getEntityId()); // SPIGOT-7312: Can always see self // RivalsBW
+     }
+ 
+     public boolean canSee(UUID uuid) {
