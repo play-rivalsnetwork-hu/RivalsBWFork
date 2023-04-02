@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Sun, 2 Apr 2023 14:10:19 +0200
+Subject: [PATCH] Optimize canSee
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 57fdef8b16e1ed9a4693356144b4685bbcea285c..e8b820891f5799ca7f80ff0a092410fcda567e68 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1618,9 +1618,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player);
+ 
+                 // CraftBukkit start - respect vanish API
+-                if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
+-                    flag = false;
+-                }
++                //if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // RivalsBW
++                    //flag = false; // RivalsBW
++                //} // RivalsBW
+                 // CraftBukkit end
+                 if (flag) {
+                     if (this.seenBy.add(player.connection)) {
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 8a4be66f967dfd6b57ab542ae9b06c840647486d..2f3adaa3f04e5e4b270608ad3b41c8a6b548cbc5 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -2695,6 +2695,7 @@ public class ServerPlayer extends Player {
+             this.connection.internalTeleport(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch(), java.util.EnumSet.noneOf(net.minecraft.world.entity.RelativeMovement.class));
+         } else {
+             this.server.getPlayerList().respawn(this, toLevel, true, to, !toLevel.paperConfig().environment.disableTeleportationSuffocationCheck);
++            this.connection.internalTeleport(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch(), java.util.EnumSet.noneOf(net.minecraft.world.entity.RelativeMovement.class));
+         }
+     }
+ 
