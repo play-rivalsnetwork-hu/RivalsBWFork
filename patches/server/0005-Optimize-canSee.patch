@@ -3,6 +3,7 @@ From: TomTom <93038247+AverageGithub@users.noreply.github.com>
 Date: Sat, 1 Apr 2023 10:33:51 +0200
 Subject: [PATCH] Optimize canSee
 
+Fix
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index 470bd9332572c3e1c9339ce691e2d86fc3ce8e08..9d66445ceb980caae2de9d8eb6772e4aca570caf 100644
@@ -76,7 +77,7 @@ index 57fdef8b16e1ed9a4693356144b4685bbcea285c..789b47e673225ef95e1da87895c9e957
          }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index f81b320ef330d03b68cf8b4af04b7c991ce9636b..283d45409e9a9a32954fe9feb24f6782e566690a 100644
+index f81b320ef330d03b68cf8b4af04b7c991ce9636b..d0761f74a37d953b206b44dfa0d5071016bb42d9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -26,6 +26,7 @@ import java.util.Optional;
@@ -164,7 +165,7 @@ index f81b320ef330d03b68cf8b4af04b7c991ce9636b..283d45409e9a9a32954fe9feb24f6782
      @Override
      public boolean canSee(org.bukkit.entity.Entity entity) {
 -        return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getUniqueId()); // SPIGOT-7312: Can always see self
-+        return this.equals(entity) || entity.isVisibleByDefault() ^ this.invertedVisibilityEntities.containsKey(entity.getEntityId()); // SPIGOT-7312: Can always see self // RivalsBW
++        return this.equals(entity) || !this.invertedVisibilityEntities.containsKey(entity.getEntityId()); // SPIGOT-7312: Can always see self // RivalsBW
      }
  
      public boolean canSee(UUID uuid) {
